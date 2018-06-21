@@ -13,3 +13,5 @@ The following commands can be used to prepare docker image which need Teradata d
 `curl -L --cookie "download_license_agreed=200419" -O "http://downloads.teradata.com/download/cdn/connectivity/jdbc/16.20.00.06/TeraJDBC__indep_indep.16.20.00.06.zip"`
 
 `curl -L --cookie "download_license_agreed=200199" -O "http://downloads.teradata.com/download/cdn/connectivity/tdch/1.5/1.5.4/teradata-connector-1.5.4-hadoop2.x.noarch.rpm"`
+
+`curl -v -L --cookie "download_license_agreed=218656" -O "http://downloads.teradata.com/download/cdn/database/teradata-express/TDExpress16.20_Sles11_20180213131632-2.7z"`
