@@ -107,3 +107,81 @@ SELECT * FROM TD_DATA_TYPE_EXAMPLE_01 ORDER BY KEY__BIGINT;
 
 
 select cast(calendar_date as format 'YYYY-MM-DD') || ' 19:20:21.' || TRIM(day_of_calendar) from SYS_CALENDAR.CALENDAR;
+
+
+CREATE MULTISET TABLE teradata_binary_table (
+      test_tinyint BYTEINT,
+      test_smallint SMALLINT,
+      test_int INTEGER NOT NULL,
+      test_bigint BIGINT,
+      test_double FLOAT,
+      test_decimal DECIMAL(15,2),
+      test_date DATE FORMAT 'YYYY-MM-DD',
+      test_timestamp TIMESTAMP(6),
+      test_char CHAR(1) CHARACTER SET UNICODE NOT CASESPECIFIC,
+      test_varchar VARCHAR(40) CHARACTER SET UNICODE NOT CASESPECIFIC,
+      test_binary VARBYTE(500)
+) UNIQUE PRIMARY INDEX ( test_int );
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-127, 32000, -9, 1234567890123456789, 2.01E10, 3.14, DATE'2011-01-02', TIMESTAMP'2022-02-28 12:34:56', '数', 'ありがとうございます', 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-1, -32000, 0, 123456789012345678, 2.0108E10, 314.15, DATE'0001-12-31', NULL, 'A', 'thank you', 'a10b37cdff63ed0000'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(127, 32767, 1, 999000, 2.034E12, 0.04, DATE'2099-01-02', NULL, 'I', '', '02a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(2, -32767, 9, 987654321098765432, 2.019876E12, NULL, DATE'2011-01-02', NULL, 'あ', 'test', NULL);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(3, 32, 99, -1234567890123456789, 2.01E10, 3.14, DATE'2999-12-31', TIMESTAMP'0001-12-28 12:34:56', '?', '*', 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-4, 320, 999, 0, 2.01E10, 3.14, DATE'2011-01-02', TIMESTAMP'2010-02-28 12:34:56', NULL, '||ありがとうございます||', 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(5, 3200, -9999, NULL, 3.14159, 3.14, NULL, TIMESTAMP'2011-02-28 12:34:56', '', 'ABC', NULL);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-6, 0, -99999, -1, NULL, 0, DATE'2011-01-02', TIMESTAMP'2009-02-28 12:34:56', '数', 'AABBCC', ''xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(7, NULL, 999999, 65536, 2.01E-8, NULL, NULL, TIMESTAMP'2099-02-28 12:34:56', '数', NULL, 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(NULL, 1, 1234, 256, 1.01E18, 12.00, DATE'2000-01-02', TIMESTAMP'2999-12-31 12:34:56', '数', NULL, 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-127, 32000, 100, 1234567890123456789, 2.01E10, 3.14, DATE'2011-01-02', TIMESTAMP'2022-02-28 12:34:56', '数', 'ありがとうございます', 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-1, -32000, 101, 123456789012345678, 2.0108E10, 314.15, DATE'2009-09-09', NULL, 'A', 'thank you', 'a10b37cdff63ed0000'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(127, 32767, 102, 999000, 2.034E12, 0.04, DATE'2011-01-02', NULL, 'I', '', '02a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(2, -32767, 103, 987654321098765432, 2.019876E12, NULL, DATE'2011-01-02', NULL, 'あ', 'test', NULL);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(3, 32, 104, -1234567890123456789, 2.01E10, 3.14, DATE'2011-01-02', TIMESTAMP'0001-12-28 12:34:56', '?', '*', 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-4, 320, 105, 0, 2.01E10, 3.14, DATE'2011-01-02', TIMESTAMP'2010-02-28 12:34:56', NULL, '||ありがとうございます||', 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(5, 3200, 106, NULL, 3.14159, 3.14, DATE'2011-01-02', TIMESTAMP'2011-02-28 12:34:56', '', 'ABC', NULL);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(-6, 0, 107, -1, NULL, 0, DATE'2011-01-02', TIMESTAMP'2009-02-28 12:34:56', '数', 'AABBCC', ''xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(7, NULL, 108, 65536, 2.01E-8, NULL, NULL, TIMESTAMP'2099-02-28 12:34:56', '数', NULL, 'a10b37cdff63ed'xb);
+
+INSERT INTO teradata_binary_table(test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal, test_date, test_timestamp, test_char, test_varchar, test_binary)
+  VALUES(NULL, 1, 109, 256, 1.01E18, 12.00, DATE'2011-01-02', TIMESTAMP'2999-12-31 12:34:56', '数', NULL, 'a10b37cdff63ed'xb);
+
+
+select * from teradata_binary_table;

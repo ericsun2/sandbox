@@ -1,9 +1,10 @@
 # Format Explanation
 
-td_data_type_example.sql will create 2 tables and populate them with sample records.
+td_data_type_example.sql will create 3 tables and populate them with sample records.
 
 * TD_DATA_TYPE_EXAMPLE_01 is used for unit test purpose. This table has the frequently-used data types. It has 5000 records. The table is serialized as td_data_type_example_01.teradata in binary format, with 2-byte record length + 0x0A end-of-record byte.
 * TD_DATA_TYPE_EXAMPLE is used to explain all data types (except UDT). It only has a few records. The table is serialized as td_data_type_example.teradata in binary format, with 2-byte record length + 0x0A end-of-record byte.
+* teradata_binary_table is the unit test table used by Hive SerDe for Teradata. It only has 11 supported data types.
 
 https://info.teradata.com/htmlpubs/DB_TTU_16_00/Load_and_Unload_Utilities/B035-2436%E2%80%90086K/2436ch03.05.3.html has the basic explanation about the different file format that TPT can export and import.
 
@@ -55,7 +56,7 @@ $ hexdump -C -n 320 td_data_type_example.teradata
 
 # How To Export
 The Hive SerDe for Teradata Binary only supports data files in 'Formatted' or 'Formatted4' mode with
-* [Indicator data mode](https://www.info.teradata.com/HTMLPubs/DB_TTU_16_00/index.html#page/Query_Management_Tools%2FB035-2414-086K%2FINDICATORMODE_CMDS_2414.html%23wwID0EIUZO) = on
+* [INDICDATA](https://www.info.teradata.com/HTMLPubs/DB_TTU_16_00/index.html#page/Query_Management_Tools%2FB035-2414-086K%2FINDICATORMODE_CMDS_2414.html%23wwID0EIUZO) format is used (please don't use DATA)
 * Maximum decimal digits = 38 (please don't use 18)
 * Date format = integer (please don't use ANSI)
 
@@ -86,7 +87,7 @@ select * from foo.teradata_binary_table order by test_int;
 
   tbuild -C -f $td_export_template_file -v ${tpt_job_var_file} \
     -u "ExportSelectStmt='${select_statement}',FormatType=Formatted,DataFileCount=${num_chunks},
-    FileWriterDirectoryPath='${output_path},FileWriterFileName='${query_table}.${data_date}',
+    FileWriterDirectoryPath='${output_path},FileWriterFileName='${query_table}.${data_date}.teradata',
     SourceTableName='${query_table}'"
 ```
 
@@ -133,8 +134,8 @@ The login credential is supplied in **tpt_job_var_file** instead of via command 
 # How To Import
 
 ## BTEQ
-When *unicode* is used, the CHAR(n) column must be specified as CHAR(n x 3) in the **USING()** section.
-For example, `test_char` is defined as CHAR(1) CHARACTER SET UNICODE in DDL, when loading via BTEQ, it needs to occupy up to 3 bytes, therefore it appears as CHAR(3) in the **USING()**.
+When **unicode** is used, the CHAR(n) column must be specified as CHAR(n x 3) in the **USING()** section.
+For example, `test_char` is defined as `CHAR(1) CHARACTER SET UNICODE` in DDL, when loading via BTEQ, it needs to occupy up to 3 bytes, therefore it appears as `CHAR(3)` in the **USING()**.
 
 If n x 3 rule is not applied, BTEQ can encounter the error like
 "Failure 2673 The source parcel length does not match data that was defined."
