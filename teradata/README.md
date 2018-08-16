@@ -161,7 +161,7 @@ USING(
       test_varchar VARCHAR(40),
       test_binary VARBYTE(500)
 )
-INSERT INTO dwh_stg.stg_teradata_binary_table
+INSERT INTO foo.stg_teradata_binary_table
 (
  test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal,
  test_date, test_timestamp, test_char, test_varchar, test_binary
