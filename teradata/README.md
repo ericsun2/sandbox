@@ -119,7 +119,8 @@ DESCRIPTION 'Export to the INDICDATA file'
     ) 
   ); 
  
-);```
+);
+```
 
 The login credential is provided in **tpt_job_var_file**:
 ```
