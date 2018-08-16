@@ -85,8 +85,9 @@ select * from teradata_binary_table order by test_int;
   num_chunks=4
 
   tbuild -C -f $td_export_template_file -v ${tpt_job_var_file} \ 
-    -u "ExportSelectStmt='${select_statement}',FormatType=Formatted,DataFileCount=${num_chunks}', 
-    FileWriterDirectoryPath='${output_path},FileWriterFileName='${query_table}.${data_date}'"
+    -u "ExportSelectStmt='${select_statement}',FormatType=Formatted,DataFileCount=${num_chunks}, 
+    FileWriterDirectoryPath='${output_path},FileWriterFileName='${query_table}.${data_date}',
+    SourceTableName='${query_table}'"
 ```
 
 The **td_export_template_file** looks like below with proper **Format**, **MaxDecimalDigits**, and **DateForm** in place.
@@ -115,7 +116,7 @@ DESCRIPTION 'Export to the INDICDATA file'
     TdpId             = @SourceTdpId, 
     UserName          = @SourceUserName, 
     UserPassword      = @SourceUserPassword, 
-    QueryBandSessInfo = 'Action=TPT_EXPORT;SourceTable=@SourceTableName;Filter=@FilterClause;Format=@FormatType;' 
+    QueryBandSessInfo = 'Action=TPT_EXPORT;SourceTable=@SourceTableName;Format=@FormatType;' 
     ) 
   ); 
  
@@ -124,14 +125,14 @@ DESCRIPTION 'Export to the INDICDATA file'
 
 The login credential is provided in **tpt_job_var_file**:
 ```
- SourceUserName=td_use
-,SourceUserPassword=td_pass
-,SourceTdpId=td_pid
+ SourceUserName=<td_use>
+,SourceUserPassword=<td_pass>
+,SourceTdpId=<td_pid>
 ```
 
 # How To Import
 
-## TPT FastExport
+## TPT FastLoad
 
 Please set the proper values in **tpt_job_var_file**, such as **SourceFormat**, **DateForm**, **MaxDecimalDigits**
 ```
@@ -142,10 +143,11 @@ Please set the proper values in **tpt_job_var_file**, such as **SourceFormat**, 
   job_id=my_job_execution_id
 
   tbuild -C -f $td_import_template_file -v ${tpt_job_var_file} \
-    -u "TargetWorkingDatabase='${staging_database}',TargetTable='${staging_table}'
-       ,SourceDirectoryPath='${file_dir}',SourceFileName='*.teradata.gz',FileInstances=8,LoadInstances=1 
-       ,Substr26TargetTable='${table_name_less_than_26chars}' 
-       ,TargetQueryBandSessInfo='TptLoad={staging_table};JobId=${job_id};'"
+    -u "TargetWorkingDatabase='${staging_database}',TargetTable='${staging_table}',
+       SourceDirectoryPath='${file_dir}',SourceFileName='*.teradata.gz',
+       FileInstances=8,LoadInstances=1,
+       Substr26TargetTable='${table_name_less_than_26chars}',
+       TargetQueryBandSessInfo='TptLoad={staging_table};JobId=${job_id};'"
 ```
 
 The **td_import_template_file** looks like:
@@ -206,7 +208,7 @@ The **tpt_job_var_file** looks like:
 ,UpdateBufferSize=1024 
 ,LoadInstances=1
 
-,TargetTdpId=td_pid
-,TargetUserName=td_user
-,TargetUserPassword=td_pass
+,TargetTdpId=<td_pid>
+,TargetUserName=<td_user>
+,TargetUserPassword=<td_pass>
 ```
