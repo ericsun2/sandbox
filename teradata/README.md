@@ -1,3 +1,4 @@
+# Format Explanation
 
 td_data_type_example.sql will create 2 tables and populate them with sample records.
 
@@ -25,8 +26,8 @@ Note: When the format attribute of the DataConnector Producer is set to 'delimit
   * Neither the record-length nor the end-of-record marker is part of the transmitted data.
 * 'Text' = character data separated by an end-of-record (EOR) marker. The EOR marker can be either a single-byte linefeed (X'0A') or a double-byte carriage-return/line-feed pair (X'0D0A'), as defined by the first EOR marker encountered for the first record. This format restricts column data types to CHAR or ANSIDATE only.
 * 'Unformatted' = not formatted. Unformatted data has no record or field delimiters, and is entirely described by the specified Teradata PT schema.
-
-This git project is dealing with the data files comformed with *Formatted* specification.
+:
+This git project is dealing with the data files comformed with **Formatted** specification.
 
 ```bash
 $ hexdump -C -n 320 td_data_type_example.teradata
@@ -52,4 +53,159 @@ $ hexdump -C -n 320 td_data_type_example.teradata
 00000130  54 55 5f 31 36 5f 30 30  00 00 00 00 00 00 00 00  |TU_16_00........|
 ```
 
+# How To Export
+The Hive SerDe for Teradata Binary only supports data files in 'Formatted' or 'Formatted4' mode with
+* Maximum decimal digits = 38 (please don't use 18)
+* Date format = integer (please don't use ANSI)
 
+Here are the corresponding settings required when **bteq** or **tbuild** cli is used:
+
+## BTEQ
+[By default](https://info.teradata.com/htmlpubs/DB_TTU_16_00/index.html#page/Query_Management_Tools/B035-2414-086K/RECORDLENGTH_CMDS_2414.html), **recordlength=max64** can be ignored.
+
+```
+SET SESSION DATEFORM=INTEGERDATE;
+.SET SESSION CHARSET UTF8
+.decimaldigits 38
+.indicdata on
+
+.export indicdata recordlength=max1mb file=td_data_with_1mb_rowsize.dat
+select * from teradata_binary_table order by test_int;
+.export reset
+```
+
+## TPT FastExport
+
+```
+  query_table=foo.bar
+  data_date=20180108
+  select_statement="SELECT * FROM $query_table WHERE trascation_date BETWEEN DATE '2018-01-01' AND DATE '2018-01-08' AND is_deleted=0"
+  select_statement=${select_statement//\'/\'\'}  # Do not put double quote here
+  output_path=/data/foo/bar/${data_date}
+  num_chunks=4
+
+  tbuild -C -f $td_export_template_file -v ${tpt_job_var_file} \ 
+    -u "ExportSelectStmt='${select_statement}',FormatType=Formatted,DataFileCount=${num_chunks}', 
+    FileWriterDirectoryPath='${output_path},FileWriterFileName='${query_table}.${data_date}'"
+```
+
+The **td_export_template_file** looks like below with proper **Format**, **MaxDecimalDigits**, and **DateForm** in place.
+```
+USING CHARACTER SET UTF8 
+DEFINE JOB EXPORT_TO_BINARY_FORMAT 
+DESCRIPTION 'Export to the INDICDATA file' 
+( 
+  /* https://www.info.teradata.com/HTMLPubs/DB_TTU_16_00/Load_and_Unload_Utilities/B035-2436%E2%80%90086K/2436ch03.05.3.html */ 
+  APPLY TO OPERATOR ($FILE_WRITER()[@DataFileCount] ATTR 
+    ( 
+    IndicatorMode = 'Y', 
+    OpenMode      = 'Write', 
+    Format        = @FormatType, 
+    DirectoryPath = @FileWriterDirectoryPath, 
+    FileName      = @FileWriterFileName, 
+    IOBufferSize  = 2048000 
+    ) 
+  ) 
+  SELECT * FROM OPERATOR ($EXPORT()[1] ATTR 
+    ( 
+    SelectStmt        = @ExportSelectStmt, 
+    MaxDecimalDigits  = 38, 
+    DateForm          = 'INTEGERDATE',  /* ANSIDATE is hard to load in BTEQ */ 
+    SpoolMode         = 'NoSpool', 
+    TdpId             = @SourceTdpId, 
+    UserName          = @SourceUserName, 
+    UserPassword      = @SourceUserPassword, 
+    QueryBandSessInfo = 'Action=TPT_EXPORT;SourceTable=@SourceTableName;Filter=@FilterClause;Format=@FormatType;' 
+    ) 
+  ); 
+ 
+);```
+
+The login credential is provided in **tpt_job_var_file**:
+```
+ SourceUserName=td_use
+,SourceUserPassword=td_pass
+,SourceTdpId=td_pid
+```
+
+# How To Import
+
+## TPT FastExport
+
+Please set the proper values in **tpt_job_var_file**, such as **SourceFormat**, **DateForm**, **MaxDecimalDigits**
+```
+  staging_database=foo
+  staging_table=stg_table_name_up_to_30_chars
+  table_name_less_than_26chars=stg_table_name_up_to_30_c
+  file_dir=/data/foo/bar
+  job_id=my_job_execution_id
+
+  tbuild -C -f $td_import_template_file -v ${tpt_job_var_file} \
+    -u "TargetWorkingDatabase='${staging_database}',TargetTable='${staging_table}'
+       ,SourceDirectoryPath='${file_dir}',SourceFileName='*.teradata.gz',FileInstances=8,LoadInstances=1 
+       ,Substr26TargetTable='${table_name_less_than_26chars}' 
+       ,TargetQueryBandSessInfo='TptLoad={staging_table};JobId=${job_id};'"
+```
+
+The **td_import_template_file** looks like:
+```
+USING CHARACTER SET @Characterset 
+DEFINE JOB LOAD_JOB 
+DESCRIPTION 'Loading Data From File To Teradata Table' 
+( 
+set LogTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_LT'; 
+set ErrorTable1=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_ET'; 
+set ErrorTable2=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_UT'; 
+set WorkTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_WT'; 
+set ErrorTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_ET'; 
+ 
+set LoadPrivateLogName=@TargetTable||'_load.log' 
+set UpdatePrivateLogName=@TargetTable||'_update.log' 
+set StreamPrivateLogName=@TargetTable||'_stream.log' 
+set InserterPrivateLogName=@TargetTable||'_inserter.log' 
+set FileReaderPrivateLogName=@TargetTable||'_filereader.log' 
+ 
+STEP PRE_PROCESSING_DROP_ERROR_TABLES 
+( 
+APPLY 
+('release mload '||@TargetTable||';'), 
+('drop table '||@LogTable||';'), 
+('drop table '||@ErrorTable||';'), 
+('drop table '||@ErrorTable1||';'), 
+('drop table '||@ErrorTable2||';'), 
+('drop table '||@WorkTable||';') 
+TO OPERATOR ($DDL); 
+); 
+ 
+ 
+STEP LOADING 
+( 
+    APPLY $INSERT TO OPERATOR ($LOAD() [@LoadInstances]) 
+    SELECT * FROM OPERATOR ($FILE_READER() [@FileInstances]); 
+); 
+);
+```
+
+The **tpt_job_var_file** looks like:
+```
+ Characterset='UTF8' 
+,DateForm='integerDate' 
+,MaxDecimalDigits=38 
+ 
+,TargetErrorLimit=100 
+,TargetErrorList=['3807','2580', '3706'] 
+,TargetBufferSize=1024 
+,TargetDataEncryption='off' 
+,SourceOpenMode='Read' 
+,SourceFormat='Formatted' 
+,SourceIndicatorMode='Y' 
+,SourceMultipleReaders='Y' 
+ 
+,LoadBufferSize=1024 
+,UpdateBufferSize=1024 
+,LoadInstances=1
+
+,TargetTdpId=td_pid
+,TargetUserName=td_user
+,TargetUserPassword=td_pass
+```
