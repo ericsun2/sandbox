@@ -46,7 +46,7 @@ $ hexdump -C -n 320 td_data_type_example.teradata
 000000c0  39 20 32 33 3a 35 39 3a  30 30 2e 36 37 38 39 30  |9 23:59:00.67890|
 000000d0  31 2b 30 35 3a 33 30 7c  7c 20 20 04 00 c0 a8 01  |1+05:30||  .....|
 000000e0  01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
-000000f0  00 00 00 00 00 00 00 00  00 3d 3d 0a 60 01 00 00  |.........==.`...|  0a is the end; offset 0x00fc is here; 0x0160=352 
+000000f0  00 00 00 00 00 00 00 00  00 3d 3d 0a 60 01 00 00  |.........==.`...|  0a is the end; offset 0x00fc is here; 0x0160=352
 00000100  08 53 46 4f 20 20 20 2f  00 68 74 74 70 73 3a 2f  |.SFO   /.https:/|
 00000110  2f 69 6e 66 6f 2e 74 65  72 61 64 61 74 61 2e 63  |/info.teradata.c|
 00000120  6f 6d 2f 68 74 6d 6c 70  75 62 73 2f 44 42 5f 54  |om/htmlpubs/DB_T|
@@ -55,75 +55,75 @@ $ hexdump -C -n 320 td_data_type_example.teradata
 
 # How To Export
 The Hive SerDe for Teradata Binary only supports data files in 'Formatted' or 'Formatted4' mode with
+* [Indicator data mode](https://www.info.teradata.com/HTMLPubs/DB_TTU_16_00/index.html#page/Query_Management_Tools%2FB035-2414-086K%2FINDICATORMODE_CMDS_2414.html%23wwID0EIUZO) = on
 * Maximum decimal digits = 38 (please don't use 18)
 * Date format = integer (please don't use ANSI)
 
 Here are the corresponding settings required when **bteq** or **tbuild** cli is used:
 
 ## BTEQ
-[By default](https://info.teradata.com/htmlpubs/DB_TTU_16_00/index.html#page/Query_Management_Tools/B035-2414-086K/RECORDLENGTH_CMDS_2414.html), **recordlength=max64** can be ignored.
+[By default](https://info.teradata.com/htmlpubs/DB_TTU_16_00/index.html#page/Query_Management_Tools/B035-2414-086K/RECORDLENGTH_CMDS_2414.html), **recordlength=max64** is applied, so MAX1MB must be explicitly specified when 'Formatted4' mode is used.
 
 ```
 SET SESSION DATEFORM=INTEGERDATE;
 .SET SESSION CHARSET UTF8
 .decimaldigits 38
-.indicdata on
 
 .export indicdata recordlength=max1mb file=td_data_with_1mb_rowsize.dat
-select * from teradata_binary_table order by test_int;
+select * from foo.teradata_binary_table order by test_int;
 .export reset
 ```
 
 ## TPT FastExport
 
 ```
-  query_table=foo.bar
+  query_table=foo.teradata_binary_table
   data_date=20180108
-  select_statement="SELECT * FROM $query_table WHERE trascation_date BETWEEN DATE '2018-01-01' AND DATE '2018-01-08' AND is_deleted=0"
+  select_statement="SELECT * FROM $query_table WHERE transaction_date BETWEEN DATE '2018-01-01' AND DATE '2018-01-08' AND is_deleted=0"
   select_statement=${select_statement//\'/\'\'}  # Do not put double quote here
   output_path=/data/foo/bar/${data_date}
   num_chunks=4
 
-  tbuild -C -f $td_export_template_file -v ${tpt_job_var_file} \ 
-    -u "ExportSelectStmt='${select_statement}',FormatType=Formatted,DataFileCount=${num_chunks}, 
+  tbuild -C -f $td_export_template_file -v ${tpt_job_var_file} \
+    -u "ExportSelectStmt='${select_statement}',FormatType=Formatted,DataFileCount=${num_chunks},
     FileWriterDirectoryPath='${output_path},FileWriterFileName='${query_table}.${data_date}',
     SourceTableName='${query_table}'"
 ```
 
 The **td_export_template_file** looks like below with proper **Format**, **MaxDecimalDigits**, and **DateForm** in place.
 ```
-USING CHARACTER SET UTF8 
-DEFINE JOB EXPORT_TO_BINARY_FORMAT 
-DESCRIPTION 'Export to the INDICDATA file' 
-( 
-  /* https://www.info.teradata.com/HTMLPubs/DB_TTU_16_00/Load_and_Unload_Utilities/B035-2436%E2%80%90086K/2436ch03.05.3.html */ 
-  APPLY TO OPERATOR ($FILE_WRITER()[@DataFileCount] ATTR 
-    ( 
-    IndicatorMode = 'Y', 
-    OpenMode      = 'Write', 
-    Format        = @FormatType, 
-    DirectoryPath = @FileWriterDirectoryPath, 
-    FileName      = @FileWriterFileName, 
-    IOBufferSize  = 2048000 
-    ) 
-  ) 
-  SELECT * FROM OPERATOR ($EXPORT()[1] ATTR 
-    ( 
-    SelectStmt        = @ExportSelectStmt, 
-    MaxDecimalDigits  = 38, 
-    DateForm          = 'INTEGERDATE',  /* ANSIDATE is hard to load in BTEQ */ 
-    SpoolMode         = 'NoSpool', 
-    TdpId             = @SourceTdpId, 
-    UserName          = @SourceUserName, 
-    UserPassword      = @SourceUserPassword, 
-    QueryBandSessInfo = 'Action=TPT_EXPORT;SourceTable=@SourceTableName;Format=@FormatType;' 
-    ) 
-  ); 
- 
+USING CHARACTER SET UTF8
+DEFINE JOB EXPORT_TO_BINARY_FORMAT
+DESCRIPTION 'Export to the INDICDATA file'
+(
+  /* https://www.info.teradata.com/HTMLPubs/DB_TTU_16_00/Load_and_Unload_Utilities/B035-2436%E2%80%90086K/2436ch03.05.3.html */
+  APPLY TO OPERATOR ($FILE_WRITER()[@DataFileCount] ATTR
+    (
+    IndicatorMode = 'Y',
+    OpenMode      = 'Write',
+    Format        = @FormatType,
+    DirectoryPath = @FileWriterDirectoryPath,
+    FileName      = @FileWriterFileName,
+    IOBufferSize  = 2048000
+    )
+  )
+  SELECT * FROM OPERATOR ($EXPORT()[1] ATTR
+    (
+    SelectStmt        = @ExportSelectStmt,
+    MaxDecimalDigits  = 38,
+    DateForm          = 'INTEGERDATE',  /* ANSIDATE is hard to load in BTEQ */
+    SpoolMode         = 'NoSpool',
+    TdpId             = @SourceTdpId,
+    UserName          = @SourceUserName,
+    UserPassword      = @SourceUserPassword,
+    QueryBandSessInfo = 'Action=TPT_EXPORT;SourceTable=@SourceTableName;Format=@FormatType;'
+    )
+  );
+
 );
 ```
 
-The login credential is provided in **tpt_job_var_file**:
+The login credential is supplied in **tpt_job_var_file** instead of via command line:
 ```
  SourceUserName=<td_use>
 ,SourceUserPassword=<td_pass>
@@ -132,80 +132,131 @@ The login credential is provided in **tpt_job_var_file**:
 
 # How To Import
 
+## BTEQ
+When *unicode* is used, the CHAR(n) column must be specified as CHAR(n x 3) in the **USING()** section.
+For example, `test_char` is defined as CHAR(1) CHARACTER SET UNICODE in DDL, when loading via BTEQ, it needs to occupy up to 3 bytes, therefore it appears as CHAR(3) in the **USING()**.
+
+If n x 3 rule is not applied, BTEQ can encounter the error like
+"Failure 2673 The source parcel length does not match data that was defined."
+
+Here is the sample BTEQ script to load a 'Formatted4' data file:
+```
+SET SESSION DATEFORM=INTEGERDATE;
+.SET SESSION CHARSET UTF8
+.decimaldigits 38
+
+.IMPORT INDICDATA RECORDLENGTH=MAX1MB FILE=td_data_with_1mb_rowsize.teradata
+.REPEAT *
+USING(
+      test_tinyint BYTEINT,
+      test_smallint SMALLINT,
+      test_int INTEGER,
+      test_bigint BIGINT,
+      test_double FLOAT,
+      test_decimal DECIMAL(15,2),
+      test_date DATE,
+      test_timestamp TIMESTAMP(6),
+      test_char CHAR(3),  -- CHAR(1) will occupy 3 bytes
+      test_varchar VARCHAR(40),
+      test_binary VARBYTE(500)
+)
+INSERT INTO dwh_stg.stg_teradata_binary_table
+(
+ test_tinyint, test_smallint, test_int, test_bigint, test_double, test_decimal,
+ test_date, test_timestamp, test_char, test_varchar, test_binary
+)
+values (
+:test_tinyint,
+:test_smallint,
+:test_int,
+:test_bigint,
+:test_double,
+:test_decimal,
+:test_date,
+:test_timestamp,
+:test_char,
+:test_varchar,
+:test_binary
+);
+
+.IMPORT RESET
+```
+
 ## TPT FastLoad
 
-Please set the proper values in **tpt_job_var_file**, such as **SourceFormat**, **DateForm**, **MaxDecimalDigits**
+**tbuild** can load multiple gzip files in parallel, this makes TPT the best choice to bulk load big data files.
+Please set the correct values in **tpt_job_var_file**, such as **SourceFormat**, **DateForm**, **MaxDecimalDigits**
 ```
   staging_database=foo
   staging_table=stg_table_name_up_to_30_chars
   table_name_less_than_26chars=stg_table_name_up_to_30_c
   file_dir=/data/foo/bar
-  job_id=my_job_execution_id
+  job_id=<my_job_execution_id>
 
   tbuild -C -f $td_import_template_file -v ${tpt_job_var_file} \
     -u "TargetWorkingDatabase='${staging_database}',TargetTable='${staging_table}',
        SourceDirectoryPath='${file_dir}',SourceFileName='*.teradata.gz',
        FileInstances=8,LoadInstances=1,
        Substr26TargetTable='${table_name_less_than_26chars}',
-       TargetQueryBandSessInfo='TptLoad={staging_table};JobId=${job_id};'"
+       TargetQueryBandSessInfo='TptLoad=${staging_table};JobId=${job_id};'"
 ```
 
 The **td_import_template_file** looks like:
 ```
-USING CHARACTER SET @Characterset 
-DEFINE JOB LOAD_JOB 
-DESCRIPTION 'Loading Data From File To Teradata Table' 
-( 
-set LogTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_LT'; 
-set ErrorTable1=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_ET'; 
-set ErrorTable2=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_UT'; 
-set WorkTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_WT'; 
-set ErrorTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_ET'; 
- 
-set LoadPrivateLogName=@TargetTable||'_load.log' 
-set UpdatePrivateLogName=@TargetTable||'_update.log' 
-set StreamPrivateLogName=@TargetTable||'_stream.log' 
-set InserterPrivateLogName=@TargetTable||'_inserter.log' 
-set FileReaderPrivateLogName=@TargetTable||'_filereader.log' 
- 
-STEP PRE_PROCESSING_DROP_ERROR_TABLES 
-( 
-APPLY 
-('release mload '||@TargetTable||';'), 
-('drop table '||@LogTable||';'), 
-('drop table '||@ErrorTable||';'), 
-('drop table '||@ErrorTable1||';'), 
-('drop table '||@ErrorTable2||';'), 
-('drop table '||@WorkTable||';') 
-TO OPERATOR ($DDL); 
-); 
- 
- 
-STEP LOADING 
-( 
-    APPLY $INSERT TO OPERATOR ($LOAD() [@LoadInstances]) 
-    SELECT * FROM OPERATOR ($FILE_READER() [@FileInstances]); 
-); 
+USING CHARACTER SET @Characterset
+DEFINE JOB LOAD_JOB
+DESCRIPTION 'Loading Data From File To Teradata Table'
+(
+set LogTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_LT';
+set ErrorTable1=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_ET';
+set ErrorTable2=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_UT';
+set WorkTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_WT';
+set ErrorTable=@TargetWorkingDatabase||'.'||@Substr26TargetTable||'_ET';
+
+set LoadPrivateLogName=@TargetTable||'_load.log'
+set UpdatePrivateLogName=@TargetTable||'_update.log'
+set StreamPrivateLogName=@TargetTable||'_stream.log'
+set InserterPrivateLogName=@TargetTable||'_inserter.log'
+set FileReaderPrivateLogName=@TargetTable||'_filereader.log'
+
+STEP PRE_PROCESSING_DROP_ERROR_TABLES
+(
+APPLY
+('release mload '||@TargetTable||';'),
+('drop table '||@LogTable||';'),
+('drop table '||@ErrorTable||';'),
+('drop table '||@ErrorTable1||';'),
+('drop table '||@ErrorTable2||';'),
+('drop table '||@WorkTable||';')
+TO OPERATOR ($DDL);
+);
+
+
+STEP LOADING
+(
+    APPLY $INSERT TO OPERATOR ($LOAD() [@LoadInstances])
+    SELECT * FROM OPERATOR ($FILE_READER() [@FileInstances]);
+);
 );
 ```
 
 The **tpt_job_var_file** looks like:
 ```
- Characterset='UTF8' 
-,DateForm='integerDate' 
-,MaxDecimalDigits=38 
- 
-,TargetErrorLimit=100 
-,TargetErrorList=['3807','2580', '3706'] 
-,TargetBufferSize=1024 
-,TargetDataEncryption='off' 
-,SourceOpenMode='Read' 
-,SourceFormat='Formatted' 
-,SourceIndicatorMode='Y' 
-,SourceMultipleReaders='Y' 
- 
-,LoadBufferSize=1024 
-,UpdateBufferSize=1024 
+ Characterset='UTF8'
+,DateForm='integerDate'
+,MaxDecimalDigits=38
+
+,TargetErrorLimit=100
+,TargetErrorList=['3807','2580', '3706']
+,TargetBufferSize=1024
+,TargetDataEncryption='off'
+,SourceOpenMode='Read'
+,SourceFormat='Formatted'
+,SourceIndicatorMode='Y'
+,SourceMultipleReaders='Y'
+
+,LoadBufferSize=1024
+,UpdateBufferSize=1024
 ,LoadInstances=1
 
 ,TargetTdpId=<td_pid>
