@@ -11,7 +11,7 @@ and `history_node` to reduce index maintenance overhead and improve write throug
 `diff schema.sql schema.partitioned.sql > diff.txt`
 
 ----
-Because OSS Temporal does not provide optimized DDL.
+Because OSS Temporal does not provide optimized DDL, this directory offers the minimal changes to scale Postgres/MySql deployment.
 
 `POSTGRES_SEEDS` must be in env already to run `auto-setup.sh`:
 ```
