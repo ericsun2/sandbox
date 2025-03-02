@@ -1,34 +1,12 @@
-44c44,54
+44c44,46
 < );
 ---
 > )
-> PARTITION BY HASH (shard_id, run_id);
-> 
-> create table executions__p00 partition of executions for values with (MODULUS 8, REMAINDER 0);
-> create table executions__p01 partition of executions for values with (MODULUS 8, REMAINDER 1);
-> create table executions__p02 partition of executions for values with (MODULUS 8, REMAINDER 2);
-> create table executions__p03 partition of executions for values with (MODULUS 8, REMAINDER 3);
-> create table executions__p04 partition of executions for values with (MODULUS 8, REMAINDER 4);
-> create table executions__p05 partition of executions for values with (MODULUS 8, REMAINDER 5);
-> create table executions__p06 partition of executions for values with (MODULUS 8, REMAINDER 6);
-> create table executions__p07 partition of executions for values with (MODULUS 8, REMAINDER 7);
-266c276,277
+> PARTITION BY KEY(shard_id, run_id)
+> PARTITIONS 8;
+266c268,270
 < );
 ---
 > )
-> PARTITION BY HASH (shard_id, tree_id);
-267a279,287
-> create table history_node__p00 partition of history_node for values with (MODULUS 8, REMAINDER 0);
-> create table history_node__p01 partition of history_node for values with (MODULUS 8, REMAINDER 1);
-> create table history_node__p02 partition of history_node for values with (MODULUS 8, REMAINDER 2);
-> create table history_node__p03 partition of history_node for values with (MODULUS 8, REMAINDER 3);
-> create table history_node__p04 partition of history_node for values with (MODULUS 8, REMAINDER 4);
-> create table history_node__p05 partition of history_node for values with (MODULUS 8, REMAINDER 5);
-> create table history_node__p06 partition of history_node for values with (MODULUS 8, REMAINDER 6);
-> create table history_node__p07 partition of history_node for values with (MODULUS 8, REMAINDER 7);
-> 
-360a381,384
-> CREATE INDEX ex_idx_run_id ON executions USING HASH (run_id);
-> CREATE INDEX tt_idx_visibility_timestamp ON timer_tasks USING BRIN (visibility_timestamp);
-> 
-> COMMENT ON COLUMN executions.run_id is '== tree_id in history_node';
+> PARTITION BY KEY(shard_id, tree_id)
+> PARTITIONS 8;
